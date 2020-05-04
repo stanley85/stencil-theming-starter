@@ -1,0 +1,32 @@
+$themes: (
+  default: (
+    border-radius: (
+      none: 0,
+      sharp: 0.1rem,
+      default: 0.3rem,
+      round: 50%
+    ),
+    color: (
+      primary: red
+    )
+  ),
+  brandtwo: (
+    border-radius: (
+      none: 0,
+      sharp: 0.1rem,
+      default: 0.3rem,
+      round: 50%
+    ),
+    color: (
+      primary: blue
+    )
+  )
+) !default;
+
+[brand="default"] {
+  @include generateCssVariables(map-get($map: $themes, $key: 'default'));
+}
+
+[brand="brandtwo"] {
+  @include generateCssVariables(map-get($map: $themes, $key: 'brandtwo'));
+}

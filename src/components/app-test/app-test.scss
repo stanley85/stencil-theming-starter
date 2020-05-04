@@ -1,0 +1,7 @@
+:host {
+  .app-test {
+    @include useTheme((
+      background-color: "color.primary"
+    ));
+  }
+}

@@ -1,0 +1,89 @@
+@function nested-get($map, $keysString) {
+    $keys: str-split($keysString, ".");
+    $value: $map;
+    $path: "mapRoot";
+
+    @each $key in $keys {
+        $path: $path + "." + $key;
+        @if (map-has-key($value, $key)) {
+            $value: map-get($value, $key);
+        } @else {
+            @error "The map does not contain the key `#{$key}` at path `#{$path}`. Check if the key is present. If it is, this error might happen because you are using a reserved keyword, like a color name. Try to change your map key to a string, e.g.: (red : #ff0000) -> (\"red\" : #ff0000)";
+        }
+    }
+
+    @return $value;
+}
+
+@function str-split($string, $separator) {
+    $split-arr: ();
+    $index: str-index($string, $separator);
+    @while $index != null {
+        $item: str-slice($string, 1, $index - 1);
+        $split-arr: append($split-arr, $item);
+        $string: str-slice($string, $index + 1);
+        $index: str-index($string, $separator);
+    }
+    $split-arr: append($split-arr, $string);
+    @return $split-arr;
+}
+
+@function convert-to-css-variable-name($keysString) {
+    $keys: str-split(inspect($keysString), ".");
+    $length: length($keys);
+    $value: "";
+    @each $key in $keys {
+        $value: $value + $key;
+        @if ($length != index($keys, $key)) {
+            $value: $value + "-";
+        }
+    }
+    @return --#{str-replace($value, '\"', '')};
+}
+
+@function str-replace($string, $search, $replace: '') {
+    $index: str-index($string, $search);
+    @if $index {
+        @return str-slice($string, 1, $index - 1) + $replace + str-replace(str-slice($string, $index + str-length($search)), $search, $replace);
+    }
+    @return $string;
+}
+
+@mixin generateCssVariables($theme, $prefix: "") {
+    @each $variable, $value in $theme {
+        @if (type-of($value) == "map") {
+            @include generateCssVariables($value, $prefix + $variable + "-");
+        } @else {
+            --#{$prefix + $variable}: #{$value};
+        }
+    }
+}
+
+@mixin useThemes($styles) {
+    @each $cssProperty, $variableName in $styles {
+        #{$cssProperty}: var(#{convert-to-css-variable-name($variableName)}, nested-get($themes, "default." + $variableName));
+    }
+    @at-root {
+        @each $brand, $theme in $themes {
+            $selectors: str-split(#{&}, ",");
+            @each $selector in $selectors {
+                [brand="#{$brand}"] #{$selector} {
+                    @each $cssProperty, $variableName in $styles {
+                        #{$cssProperty}: nested-get($themes, $brand + "." + $variableName);
+                    }
+                }
+            }
+        }
+    }
+}
+
+@mixin useTheme($cssPropertyOrStylesMap, $variableName: null) {
+    @if (type-of($cssPropertyOrStylesMap) == "map") {
+        @include useThemes($cssPropertyOrStylesMap);
+    } @else {
+        @if ($variableName == null) {
+            @error "you must provide either a map (cssProperty : variableName) as the first argument or a propertyName as the first and a variableName as the second argument";
+        }
+        @include useThemes(($cssPropertyOrStylesMap: $variableName));
+    }
+}
